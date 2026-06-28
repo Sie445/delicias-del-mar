@@ -238,6 +238,8 @@ footer strong { color: var(--gold); font-weight: 600; font-family: 'Playfair Dis
 
 @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-8px)} 80%{transform:translateX(8px)} }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.collapsible-nav { display: none; }
+.collapsible-nav.open { display: flex; }
 </style>
 </head>
 <body>
@@ -400,7 +402,7 @@ footer strong { color: var(--gold); font-weight: 600; font-family: 'Playfair Dis
 </div>
 
 <header class="hero">
-  <p class="hero-eyebrow">Marisquería Premium</p>
+  <p class="hero-eyebrow">Restaurante de Autor</p>
   <h1 class="hero-title" id="hero-title-display">Delicias del <em>Mar</em></h1>
   <p class="hero-sub" id="hero-sub-display">El Sabor Premium del Océano</p>
   <div class="hero-divider"></div>
@@ -416,7 +418,15 @@ footer strong { color: var(--gold); font-weight: 600; font-family: 'Playfair Dis
     <path d="M0,30 C240,60 480,0 720,30 C960,60 1200,0 1440,30 L1440,60 L0,60 Z" fill="#0a192f"/>
   </svg>
 </div>
-<nav class="cat-nav" id="cat-nav-public"></nav>
+<div style="position: sticky; top: 0; z-index: 1500; background: rgba(10, 25, 47, 0.96); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center; padding: 14px 24px;">
+  
+  <button onclick="document.getElementById('cat-nav-public').classList.toggle('open')" style="background: rgba(0,180,216,.1); border: 1px solid var(--teal); color: var(--teal2); padding: 10px 20px; border-radius: 8px; font-family: 'Inter', sans-serif; cursor: pointer; letter-spacing: 1px; text-transform: uppercase; font-size: 11px; outline: none;">
+    📑 Ver Categorías
+  </button>
+  
+  <nav class="cat-nav collapsible-nav" id="cat-nav-public" style="position: static; background: transparent; border: none; padding: 12px 0 0 0;"></nav>
+
+</div>
 <main id="menu-main"></main>
 <footer>
   <p>🌊 <strong id="footer-name">Delicias del Mar</strong> — Alta Cocina</p>
@@ -698,17 +708,34 @@ function populateCategorySelects() {
 }
 function renderCatAdmin() {
   document.getElementById('cat-list-admin').innerHTML =
-    state.categories.map(c=>`<div class="dish-row">
+    state.categories.map((c, index) => `<div class="dish-row">
       <div class="dish-row-img">${c.icon}</div>
       <div class="dish-row-info">
         <div class="dish-row-name">${c.name}</div>
         <div class="dish-row-meta">${c.sub||'Sin subtítulo'} · ${state.dishes.filter(d=>d.cat===c.id).length} platos</div>
       </div>
       <div class="dish-row-actions">
+        ${index > 0 ? `<button class="btn-edit" onclick="moveCat(${index}, -1)" title="Subir">⬆️</button>` : ''}
+        ${index < state.categories.length - 1 ? `<button class="btn-edit" onclick="moveCat(${index}, 1)" title="Bajar">⬇️</button>` : ''}
         <button class="btn-del" onclick="deleteCat('${c.id}')">Eliminar</button>
       </div>
     </div>`).join('');
 }
+window.moveCat = async function(index, direction) {
+  // Calculamos la nueva posición
+  const newIndex = index + direction;
+  
+  // Intercambiamos las categorías de lugar
+  const temp = state.categories[index];
+  state.categories[index] = state.categories[newIndex];
+  state.categories[newIndex] = temp;
+  
+  // Guardamos en la nube y actualizamos las vistas
+  await saveToCloud();
+  renderCatAdmin();
+  renderPublicMenu();
+  showToast("Orden actualizado ✓");
+};
 window.addCategory = async function() {
   const name=document.getElementById('new-cat-name').value.trim();
   if(!name){alert('Escribe el nombre');return;}
